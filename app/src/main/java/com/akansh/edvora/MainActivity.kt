@@ -80,7 +80,7 @@ class MainActivity : AppCompatActivity(), TabsAdapter.TabClickListener {
         transaction.addToBackStack(null)
         transaction.commit()
 
-        volleyGet()
+        getDataFromAPI()
 
         val filter_btn = findViewById<ConstraintLayout>(R.id.filter_btn)
         myDialog = Dialog(this)
@@ -168,7 +168,7 @@ class MainActivity : AppCompatActivity(), TabsAdapter.TabClickListener {
         transaction.commit()
     }
 
-    fun volleyGet() {
+    fun getDataFromAPI() {
         val requestQueue = Volley.newRequestQueue(this)
         val states = ArrayList<String>()
         val cities = ArrayList<String>()
@@ -196,7 +196,7 @@ class MainActivity : AppCompatActivity(), TabsAdapter.TabClickListener {
                     }
                 }
 
-                val item = ListData("", map_url, city, state, ride_id, station_code, station_path.toString(), dt1.format(date).toString(), min.toString())
+                val item = ListData(map_url, city, state, ride_id, station_code, station_path.toString(), dt1.format(date).toString(), min.toString())
                 nearest_locations.put(item,min)
 
                 if(date.compareTo(Date()) > 0 ) {

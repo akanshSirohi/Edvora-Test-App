@@ -25,10 +25,10 @@ import com.android.volley.toolbox.Volley
 import com.skydoves.powerspinner.OnSpinnerItemSelectedListener
 import com.skydoves.powerspinner.PowerSpinnerView
 import org.json.JSONException
-import java.lang.Exception
 import java.text.SimpleDateFormat
 import java.util.*
 import kotlin.collections.HashMap
+import kotlin.math.abs
 
 
 class MainActivity : AppCompatActivity(), TabsAdapter.TabClickListener {
@@ -42,10 +42,12 @@ class MainActivity : AppCompatActivity(), TabsAdapter.TabClickListener {
     var spinnerCity : PowerSpinnerView? = null
     var locations: DuplicateMap<String,String> = DuplicateMap()
 
-    var all_data: ArrayList<ListData> = ArrayList()
+    var nearest_locations: HashMap<ListData,Int> = HashMap()
+
+
+    var n_data: ArrayList<ListData> = ArrayList()
     var u_data: ArrayList<ListData> = ArrayList()
     var p_data: ArrayList<ListData> = ArrayList()
-
 
     var filterState = ""
     var filterCity = ""
@@ -99,7 +101,7 @@ class MainActivity : AppCompatActivity(), TabsAdapter.TabClickListener {
         clear_filter_btn.setOnClickListener {
             spinnerCity?.clearSelectedItem()
             spinnerState?.clearSelectedItem()
-            nearestFragment.remove_filter(all_data)
+            nearestFragment.remove_filter(n_data)
             pastFragment.remove_filter(u_data)
             upcomingFragment.remove_filter(p_data)
         }
@@ -140,7 +142,7 @@ class MainActivity : AppCompatActivity(), TabsAdapter.TabClickListener {
     }
 
     fun filter() {
-        nearestFragment.filter(all_data,filterState,filterCity)
+        nearestFragment.filter(n_data,filterState,filterCity)
         try {
             pastFragment.filter(u_data,filterState,filterCity)
         }catch (e: Exception){}
@@ -177,7 +179,7 @@ class MainActivity : AppCompatActivity(), TabsAdapter.TabClickListener {
                 val data = response.getJSONObject(i)
                 val ride_id = data.getString("id")
                 val station_code = data.getString("origin_station_code")
-                val station_path = data.getString("station_path")
+                val station_path = data.getJSONArray("station_path")
                 val map_url = data.getString("map_url")
                 val state = data.getString("state")
                 val city = data.getString("city")
@@ -186,7 +188,17 @@ class MainActivity : AppCompatActivity(), TabsAdapter.TabClickListener {
                 val dt1 = SimpleDateFormat("dd MMM yyyy hh:mm aa")
                 val date = formatter.parse(data.getString("date"))
 
-                val item = ListData("",map_url,city,state,ride_id,station_code,station_path,dt1.format(date).toString(),"0")
+                var min = 100
+                for(i in 0..station_path.length()-1) {
+                    var x = station_path.getInt(i)
+                    if(abs(Constants.MY_STATION_CODE-x) < min) {
+                        min = abs(Constants.MY_STATION_CODE-x)
+                    }
+                }
+
+                val item = ListData("", map_url, city, state, ride_id, station_code, station_path.toString(), dt1.format(date).toString(), min.toString())
+                nearest_locations.put(item,min)
+
                 if(date.compareTo(Date()) > 0 ) {
                     upcomingFragment.addItem(item)
                     u_data.add(item)
@@ -197,8 +209,14 @@ class MainActivity : AppCompatActivity(), TabsAdapter.TabClickListener {
                 states.add(state)
                 cities.add(city)
                 locations.put(state,city)
-                nearestFragment.addItem(item)
-                all_data.add(item)
+            }
+
+            val utils = Utils()
+            val sorted = utils.sortByValue(nearest_locations)
+
+            for (i in 0..sorted.size-1) {
+                nearestFragment.addItem(sorted.keys.elementAt(i))
+                n_data.add(sorted.keys.elementAt(i))
             }
 
             tabs_adapter?.setTitle(1, Constants.TABS[1]+ "(" + upcomingFragment.getSize() + ")")
@@ -220,5 +238,7 @@ class MainActivity : AppCompatActivity(), TabsAdapter.TabClickListener {
         })
         requestQueue.add(request)
     }
+
+
 
 }
